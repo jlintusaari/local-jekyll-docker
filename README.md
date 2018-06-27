@@ -40,11 +40,39 @@ Some explanations for the `docker run` command above:
 - **jekyll serve -H 0.0.0.0** run the server on 0.0.0.0. The default host would be localhost but
   it would not be reachable outside the container (in this case from our machine).
 
-### Avoiding repeated gem installation
+### Speeding up the starting of the server
 
+Most of the time in starting the server with the command above is spent in loading and 
+installing the gems. The repeated installation can be avoided by making a new image that already 
+contains the needed gems. We could use a `Dockerfile` for it but in this case it's straightforward 
+to create it from the command line. Assuming we are in the `blog` folder, type:
 
-TODO
+```
+docker run --name blog_server --volume="$PWD:/srv/jekyll" -it jekyll/jekyll:3.8 \
+  bundle install
+```
 
+Notice that we removed the `--rm` argument which would remove the container after execution. Instead 
+we added `--name` to give the container a name `blog_server`. Now typing `docker ps -a` 
+should show you a container with that name. It has all the gems installed
+and the final step is to make an image of it with `docker commit`:
+
+```  
+docker commit blog_server blog_server
+```
+
+Now we have an image called `blog_server` that has the needed gems installed. 
+You can see this image listed by typing `docker images`. 
+The server can now be ran using our new image with
+
+```
+docker run --rm --volume="$PWD:/srv/jekyll" -p 4000:4000 -it blog_server \
+  bundle exec jekyll serve -H 0.0.0.0
+```
+
+You will notice that it starts in an instant. As long as you keep the image in your computer you can 
+use it to serve the blog. If you at some point update your bundle (dependencies) you can recreate
+the image with the steps above.
 
 ## Creation of the example blog files
 
